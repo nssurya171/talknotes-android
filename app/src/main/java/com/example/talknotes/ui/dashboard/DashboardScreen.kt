@@ -17,8 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talknotes.service.RecordingService
 import com.example.talknotes.viewmodel.DashboardViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun DashboardScreen(
@@ -33,7 +38,25 @@ fun DashboardScreen(
 ) {
     val meetings by viewModel.meetings.collectAsState()
     val isRecording by viewModel.isRecording.collectAsState()
+    val activeMeetingStartTime by viewModel.activeMeetingStartTime.collectAsState()
     val context = LocalContext.current
+
+    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(isRecording) {
+        while (isRecording) {
+            currentTimeMillis = System.currentTimeMillis()
+            delay(1000)
+        }
+    }
+
+    val elapsedMillis = if (isRecording && activeMeetingStartTime != null) {
+        currentTimeMillis - activeMeetingStartTime!!
+    } else {
+        0L
+    }
+
+    val timerText = formatElapsedTime(elapsedMillis)
 
     Scaffold(
         floatingActionButton = {
@@ -68,6 +91,13 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isRecording) {
+                Text(
+                    text = timerText,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Button(
                     onClick = {
                         viewModel.stopAllRecordings()
@@ -127,4 +157,12 @@ fun MeetingItem(
             )
         }
     }
+}
+
+fun formatElapsedTime(elapsedMillis: Long): String {
+    val totalSeconds = elapsedMillis / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+
+    return String.format("%02d:%02d", minutes, seconds)
 }

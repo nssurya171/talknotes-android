@@ -36,6 +36,17 @@ class DashboardViewModel @Inject constructor(
             initialValue = false
         )
 
+    val activeMeetingStartTime: StateFlow<Long?> = meetingRepository
+        .getMeetings()
+        .map { meetings ->
+            meetings.firstOrNull { it.status == "RECORDING" }?.startTime
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null
+        )
+
     fun startNewMeeting(title: String = "New Meeting") {
         viewModelScope.launch {
             val activeMeetings = meetingRepository.getActiveRecordings()
