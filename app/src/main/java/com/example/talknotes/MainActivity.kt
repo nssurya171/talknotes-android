@@ -8,9 +8,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import com.example.talknotes.ui.dashboard.DashboardScreen
+import com.example.talknotes.ui.recording.RecordingScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
     private val requestAudioPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // later we can show UI message if denied
+        // optional: later show toast/snackbar if denied
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,9 +47,33 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TalkNotesRoot() {
+    var currentScreen by remember { mutableStateOf("dashboard") }
+    var recordingStartTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
     MaterialTheme {
         Surface {
-            DashboardScreen()
+            when (currentScreen) {
+                "dashboard" -> {
+                    DashboardScreen(
+                        onNavigateToRecording = { startTime ->
+                            recordingStartTime = startTime
+                            currentScreen = "recording"
+                        }
+                    )
+                }
+
+                "recording" -> {
+                    RecordingScreen(
+                        startTimeMillis = recordingStartTime,
+                        onBack = {
+                            currentScreen = "dashboard"
+                        },
+                        onStopCompleted = {
+                            currentScreen = "dashboard"
+                        }
+                    )
+                }
+            }
         }
     }
 }

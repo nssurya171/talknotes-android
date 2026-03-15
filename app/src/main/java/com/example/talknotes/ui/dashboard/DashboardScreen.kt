@@ -35,9 +35,11 @@ import com.example.talknotes.service.RecordingService
 import com.example.talknotes.viewmodel.DashboardViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.example.talknotes.ui.recording.formatElapsedTime
 
 @Composable
 fun DashboardScreen(
+    onNavigateToRecording: (Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val meetings by viewModel.meetings.collectAsState()
@@ -73,14 +75,21 @@ fun DashboardScreen(
                             Manifest.permission.RECORD_AUDIO
                         ) == PackageManager.PERMISSION_GRANTED
 
+                        android.util.Log.d("TalkNotes", "FAB clicked, permissionGranted=$permissionGranted")
+
                         if (!permissionGranted) {
+                            android.util.Log.d("TalkNotes", "Returning because RECORD_AUDIO not granted")
                             return@FloatingActionButton
                         }
 
                         coroutineScope.launch {
+                            android.util.Log.d("TalkNotes", "Trying to create meeting")
                             val meetingId = viewModel.createNewMeetingIfPossible()
+                            android.util.Log.d("TalkNotes", "meetingId=$meetingId")
+                            android.util.Log.d("TalkNotes", "Starting recording service for meetingId=$meetingId")
 
                             if (meetingId != null) {
+                                val startTime = System.currentTimeMillis()
                                 val intent = Intent(context, RecordingService::class.java).apply {
                                     action = RecordingService.ACTION_START
                                     putExtra(
@@ -89,6 +98,8 @@ fun DashboardScreen(
                                     )
                                 }
                                 ContextCompat.startForegroundService(context, intent)
+                                android.util.Log.d("TalkNotes", "Started service, navigating to recording")
+                                onNavigateToRecording(startTime)
                             }
                         }
                     }
@@ -264,11 +275,4 @@ fun MeetingItem(
             }
         }
     }
-}
-
-fun formatElapsedTime(elapsedMillis: Long): String {
-    val totalSeconds = elapsedMillis / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%02d:%02d", minutes, seconds)
 }

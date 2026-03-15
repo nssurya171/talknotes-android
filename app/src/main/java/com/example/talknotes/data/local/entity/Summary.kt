@@ -19,3 +19,4 @@ data class Summary(
 
     val keyPoints: String
 )
+

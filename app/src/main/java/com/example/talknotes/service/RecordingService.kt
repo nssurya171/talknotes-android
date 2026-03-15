@@ -70,7 +70,7 @@ class RecordingService : Service() {
             ACTION_STOP -> {
                 serviceScope.launch {
                     meetingRepository.stopAllActiveRecordings()
-                    stopChunkingLoop()
+                    stopChunkingLoopAndSavePartialChunk()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -81,7 +81,8 @@ class RecordingService : Service() {
     }
 
     override fun onDestroy() {
-        stopChunkingLoop()
+        chunkingJob?.cancel()
+        chunkingJob = null
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -102,11 +103,11 @@ class RecordingService : Service() {
         }
     }
 
-    private fun stopChunkingLoop() {
+    private suspend fun stopChunkingLoopAndSavePartialChunk() {
         chunkingJob?.cancel()
         chunkingJob = null
 
-        stopRecordingSilently()
+        stopCurrentChunkAndSaveIfNeeded()
     }
 
     private fun startRecordingChunk() {
@@ -170,20 +171,42 @@ class RecordingService : Service() {
                 )
             )
         }
+        outputFilePath = null
     }
 
-    private fun stopRecordingSilently() {
+    private suspend fun stopCurrentChunkAndSaveIfNeeded() {
+        val savedPath = outputFilePath
+
         try {
             mediaRecorder?.apply {
                 stop()
                 reset()
                 release()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
         } finally {
             mediaRecorder = null
         }
+
+        if (!savedPath.isNullOrBlank()) {
+            val file = File(savedPath)
+
+            if (file.exists() && file.length() > 0L) {
+                audioChunkRepository.saveChunk(
+                    AudioChunk(
+                        meetingId = currentMeetingId,
+                        chunkIndex = currentChunkIndex,
+                        filePath = savedPath,
+                        uploaded = false
+                    )
+                )
+            }
+        }
+
+        outputFilePath = null
     }
+
 
     private fun buildNotification(contentText: String): Notification {
         val stopIntent = Intent(this, RecordingService::class.java).apply {
