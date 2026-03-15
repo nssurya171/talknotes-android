@@ -14,4 +14,7 @@ interface SummaryDao {
 
     @Query("SELECT * FROM summaries WHERE meetingId = :meetingId")
     fun getSummary(meetingId: Long): Flow<Summary?>
+
+    @Query("DELETE FROM summaries WHERE meetingId = :meetingId")
+    suspend fun deleteSummaryForMeeting(meetingId: Long)
 }

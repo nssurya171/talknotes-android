@@ -18,4 +18,8 @@ class SummaryRepository @Inject constructor(
     fun getSummary(meetingId: Long): Flow<Summary?> {
         return summaryDao.getSummary(meetingId)
     }
+
+    suspend fun clearSummaryForMeeting(meetingId: Long) {
+        summaryDao.deleteSummaryForMeeting(meetingId)
+    }
 }

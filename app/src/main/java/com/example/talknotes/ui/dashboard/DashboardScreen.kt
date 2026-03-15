@@ -166,6 +166,7 @@ fun MeetingItem(
 ) {
     val chunkCount by viewModel.getChunkCountForMeeting(meetingId).collectAsState(initial = 0)
     val transcriptList by viewModel.getTranscriptForMeeting(meetingId).collectAsState(initial = emptyList())
+    val summary by viewModel.getSummaryForMeeting(meetingId).collectAsState(initial = null)
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -199,6 +200,13 @@ fun MeetingItem(
                 style = MaterialTheme.typography.bodyMedium
             )
 
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = if (summary != null) "Summary: Available" else "Summary: Not generated",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
             if (status == "STOPPED" && chunkCount > 0) {
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -210,6 +218,49 @@ fun MeetingItem(
                 ) {
                     Text("Generate Mock Transcript")
                 }
+            }
+
+            if (status == "STOPPED" && transcriptList.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.generateMockSummary(meetingId)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Generate Mock Summary")
+                }
+            }
+
+            if (summary != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Title: ${summary?.title.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Summary: ${summary?.summary.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Action Items: ${summary?.actionItems.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Key Points: ${summary?.keyPoints.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

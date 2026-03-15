@@ -3,9 +3,11 @@ package com.example.talknotes.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.talknotes.data.local.entity.Meeting
+import com.example.talknotes.data.local.entity.Summary
 import com.example.talknotes.data.local.entity.Transcript
 import com.example.talknotes.data.repository.AudioChunkRepository
 import com.example.talknotes.data.repository.MeetingRepository
+import com.example.talknotes.data.repository.SummaryRepository
 import com.example.talknotes.data.repository.TranscriptRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
 class DashboardViewModel @Inject constructor(
     private val meetingRepository: MeetingRepository,
     private val audioChunkRepository: AudioChunkRepository,
-    private val transcriptRepository: TranscriptRepository
+    private val transcriptRepository: TranscriptRepository,
+    private val summaryRepository: SummaryRepository
 ) : ViewModel() {
 
     val meetings: StateFlow<List<Meeting>> = meetingRepository
@@ -77,6 +80,10 @@ class DashboardViewModel @Inject constructor(
         return transcriptRepository.getTranscript(meetingId)
     }
 
+    fun getSummaryForMeeting(meetingId: Long): Flow<Summary?> {
+        return summaryRepository.getSummary(meetingId)
+    }
+
     fun generateMockTranscript(meetingId: Long) {
         viewModelScope.launch {
             val chunks = audioChunkRepository.getChunksForMeeting(meetingId)
@@ -92,6 +99,37 @@ class DashboardViewModel @Inject constructor(
                     )
                 )
             }
+        }
+    }
+
+    fun generateMockSummary(meetingId: Long) {
+        viewModelScope.launch {
+            val transcriptList = transcriptRepository
+                .getTranscript(meetingId)
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList()
+                )
+                .value
+
+            if (transcriptList.isEmpty()) return@launch
+
+            val fullTranscript = transcriptList
+                .sortedBy { it.chunkIndex }
+                .joinToString(separator = " ") { it.text }
+
+            summaryRepository.clearSummaryForMeeting(meetingId)
+
+            summaryRepository.saveSummary(
+                Summary(
+                    meetingId = meetingId,
+                    title = "Mock Summary for Meeting $meetingId",
+                    summary = "This is a mock summary generated from transcript: $fullTranscript",
+                    actionItems = "1. Review transcript\n2. Validate chunks\n3. Replace mock with real API",
+                    keyPoints = "Chunk-based recording, transcript generated, summary pipeline ready"
+                )
+            )
         }
     }
 }
