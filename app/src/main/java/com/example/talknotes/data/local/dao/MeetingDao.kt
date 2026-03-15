@@ -24,4 +24,7 @@ interface MeetingDao {
 
     @Query("SELECT * FROM meetings WHERE status = 'RECORDING' ORDER BY startTime DESC")
     suspend fun getActiveRecordings(): List<Meeting>
+
+    @Query("UPDATE meetings SET status = :status WHERE id = :meetingId")
+    suspend fun updateMeetingStatus(meetingId: Long, status: String)
 }

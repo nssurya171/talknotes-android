@@ -48,4 +48,8 @@ class MeetingRepository @Inject constructor(
             )
         }
     }
+
+    suspend fun updateMeetingStatus(meetingId: Long, status: String) {
+        meetingDao.updateMeetingStatus(meetingId, status)
+    }
 }

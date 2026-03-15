@@ -25,9 +25,19 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+
 
 @AndroidEntryPoint
 class RecordingService : Service() {
+
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus: Boolean = false
+    private var isPausedByAudioFocus: Boolean = false
 
     @Inject
     lateinit var meetingRepository: MeetingRepository
@@ -43,6 +53,93 @@ class RecordingService : Service() {
     private var chunkingJob: Job? = null
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private fun updateNotification(contentText: String) {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(NOTIFICATION_ID, buildNotification(contentText))
+    }
+
+    private suspend fun handleAudioFocusLoss() {
+        if (currentMeetingId == -1L || isPausedByAudioFocus) return
+
+        isPausedByAudioFocus = true
+
+        stopChunkingLoopAndSavePartialChunk()
+        meetingRepository.updateMeetingStatus(currentMeetingId, "PAUSED_AUDIO_FOCUS")
+        updateNotification("Paused - Audio focus lost")
+    }
+
+    private suspend fun handleAudioFocusGain() {
+        if (currentMeetingId == -1L || !isPausedByAudioFocus) return
+
+        isPausedByAudioFocus = false
+
+        meetingRepository.updateMeetingStatus(currentMeetingId, "RECORDING")
+        updateNotification("Recording...")
+
+        if (mediaRecorder == null) {
+            startChunkingLoop()
+        }
+    }
+
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                serviceScope.launch {
+                    handleAudioFocusLoss()
+                }
+            }
+
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                serviceScope.launch {
+                    handleAudioFocusGain()
+                }
+            }
+        }
+    }
+
+    private fun requestAudioFocus(): Boolean {
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+
+            audioFocusRequest = request
+            val result = audioManager?.requestAudioFocus(request)
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            hasAudioFocus
+        } else {
+            @Suppress("DEPRECATION")
+            val result = audioManager?.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            hasAudioFocus
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { request ->
+                audioManager?.abandonAudioFocusRequest(request)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.abandonAudioFocus(audioFocusChangeListener)
+        }
+        hasAudioFocus = false
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -61,6 +158,17 @@ class RecordingService : Service() {
 
                 startForeground(NOTIFICATION_ID, buildNotification("Recording..."))
 
+                val focusGranted = requestAudioFocus()
+                if (!focusGranted) {
+                    serviceScope.launch {
+                        meetingRepository.updateMeetingStatus(currentMeetingId, "PAUSED_AUDIO_FOCUS")
+                        updateNotification("Paused - Audio focus lost")
+                    }
+                    return START_STICKY
+                }
+
+                isPausedByAudioFocus = false
+
                 if (mediaRecorder == null) {
                     currentChunkIndex = 0
                     startChunkingLoop()
@@ -71,6 +179,7 @@ class RecordingService : Service() {
                 serviceScope.launch {
                     meetingRepository.stopAllActiveRecordings()
                     stopChunkingLoopAndSavePartialChunk()
+                    abandonAudioFocus()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -83,10 +192,10 @@ class RecordingService : Service() {
     override fun onDestroy() {
         chunkingJob?.cancel()
         chunkingJob = null
+        abandonAudioFocus()
         serviceScope.cancel()
         super.onDestroy()
     }
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startChunkingLoop() {
