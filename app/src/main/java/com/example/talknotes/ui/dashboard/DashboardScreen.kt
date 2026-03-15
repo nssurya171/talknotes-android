@@ -36,6 +36,8 @@ fun DashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
+                    viewModel.startNewMeeting()
+
                     val intent = Intent(context, RecordingService::class.java)
                     ContextCompat.startForegroundService(context, intent)
                 }

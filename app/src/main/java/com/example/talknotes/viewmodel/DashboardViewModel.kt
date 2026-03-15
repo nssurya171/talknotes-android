@@ -9,6 +9,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -22,4 +23,10 @@ class DashboardViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
         )
+
+    fun startNewMeeting(title: String = "New Meeting") {
+        viewModelScope.launch {
+            meetingRepository.createMeeting(title)
+        }
+    }
 }
