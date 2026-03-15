@@ -1,6 +1,8 @@
 package com.example.talknotes.ui.dashboard
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talknotes.service.RecordingService
 import com.example.talknotes.viewmodel.DashboardViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun DashboardScreen(
@@ -40,6 +44,7 @@ fun DashboardScreen(
     val isRecording by viewModel.isRecording.collectAsState()
     val activeMeetingStartTime by viewModel.activeMeetingStartTime.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -63,12 +68,29 @@ fun DashboardScreen(
             if (!isRecording) {
                 FloatingActionButton(
                     onClick = {
-                        viewModel.startNewMeeting()
+                        val permissionGranted = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
 
-                        val intent = Intent(context, RecordingService::class.java).apply {
-                            action = RecordingService.ACTION_START
+                        if (!permissionGranted) {
+                            return@FloatingActionButton
                         }
-                        ContextCompat.startForegroundService(context, intent)
+
+                        coroutineScope.launch {
+                            val meetingId = viewModel.createNewMeetingIfPossible()
+
+                            if (meetingId != null) {
+                                val intent = Intent(context, RecordingService::class.java).apply {
+                                    action = RecordingService.ACTION_START
+                                    putExtra(
+                                        RecordingService.EXTRA_MEETING_ID,
+                                        meetingId.toLong()
+                                    )
+                                }
+                                ContextCompat.startForegroundService(context, intent)
+                            }
+                        }
                     }
                 ) {
                     Text("+")
@@ -163,6 +185,5 @@ fun formatElapsedTime(elapsedMillis: Long): String {
     val totalSeconds = elapsedMillis / 1000
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
-
     return String.format("%02d:%02d", minutes, seconds)
 }

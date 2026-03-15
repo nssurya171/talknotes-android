@@ -12,14 +12,18 @@ import android.os.Environment
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.talknotes.R
+import com.example.talknotes.data.local.entity.AudioChunk
+import com.example.talknotes.data.repository.AudioChunkRepository
 import com.example.talknotes.data.repository.MeetingRepository
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -28,8 +32,15 @@ class RecordingService : Service() {
     @Inject
     lateinit var meetingRepository: MeetingRepository
 
+    @Inject
+    lateinit var audioChunkRepository: AudioChunkRepository
+
     private var mediaRecorder: MediaRecorder? = null
     private var outputFilePath: String? = null
+
+    private var currentMeetingId: Long = -1L
+    private var currentChunkIndex: Int = 0
+    private var chunkingJob: Job? = null
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -41,16 +52,25 @@ class RecordingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
+                currentMeetingId = intent.getLongExtra(EXTRA_MEETING_ID, -1L)
+
+                if (currentMeetingId == -1L) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+
                 startForeground(NOTIFICATION_ID, buildNotification("Recording..."))
+
                 if (mediaRecorder == null) {
-                    startRecording()
+                    currentChunkIndex = 0
+                    startChunkingLoop()
                 }
             }
 
             ACTION_STOP -> {
                 serviceScope.launch {
                     meetingRepository.stopAllActiveRecordings()
-                    stopRecording()
+                    stopChunkingLoop()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -61,14 +81,35 @@ class RecordingService : Service() {
     }
 
     override fun onDestroy() {
-        stopRecording()
+        stopChunkingLoop()
         serviceScope.cancel()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startRecording() {
+    private fun startChunkingLoop() {
+        chunkingJob?.cancel()
+
+        chunkingJob = serviceScope.launch {
+            while (true) {
+                currentChunkIndex++
+
+                startRecordingChunk()
+                delay(CHUNK_DURATION_MS)
+                stopRecordingChunkAndSaveMetadata()
+            }
+        }
+    }
+
+    private fun stopChunkingLoop() {
+        chunkingJob?.cancel()
+        chunkingJob = null
+
+        stopRecordingSilently()
+    }
+
+    private fun startRecordingChunk() {
         val baseDir = getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: filesDir
         val audioDir = File(baseDir, "recordings")
 
@@ -78,26 +119,35 @@ class RecordingService : Service() {
 
         outputFilePath = File(
             audioDir,
-            "recording_${System.currentTimeMillis()}.m4a"
+            "meeting_${currentMeetingId}_chunk_${currentChunkIndex}.m4a"
         ).absolutePath
 
-        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(this)
-        } else {
-            MediaRecorder()
-        }
+        android.util.Log.d("TalkNotes", "Recording file path: $outputFilePath")
 
-        mediaRecorder?.apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setOutputFile(outputFilePath)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            prepare()
-            start()
+        try {
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                MediaRecorder()
+            }
+
+            mediaRecorder?.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setOutputFile(outputFilePath)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf()
         }
     }
 
-    private fun stopRecording() {
+    private suspend fun stopRecordingChunkAndSaveMetadata() {
+        val savedPath = outputFilePath
+
         try {
             mediaRecorder?.apply {
                 stop()
@@ -106,6 +156,30 @@ class RecordingService : Service() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        } finally {
+            mediaRecorder = null
+        }
+
+        if (!savedPath.isNullOrBlank()) {
+            audioChunkRepository.saveChunk(
+                AudioChunk(
+                    meetingId = currentMeetingId,
+                    chunkIndex = currentChunkIndex,
+                    filePath = savedPath,
+                    uploaded = false
+                )
+            )
+        }
+    }
+
+    private fun stopRecordingSilently() {
+        try {
+            mediaRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+        } catch (_: Exception) {
         } finally {
             mediaRecorder = null
         }
@@ -135,7 +209,6 @@ class RecordingService : Service() {
             )
             .build()
     }
-    
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -156,5 +229,9 @@ class RecordingService : Service() {
 
         const val ACTION_START = "ACTION_START_RECORDING"
         const val ACTION_STOP = "ACTION_STOP_RECORDING"
+
+        const val EXTRA_MEETING_ID = "extra_meeting_id"
+
+        const val CHUNK_DURATION_MS = 30_000L
     }
 }

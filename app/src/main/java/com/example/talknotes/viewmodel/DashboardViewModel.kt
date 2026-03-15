@@ -47,13 +47,13 @@ class DashboardViewModel @Inject constructor(
             initialValue = null
         )
 
-    fun startNewMeeting(title: String = "New Meeting") {
-        viewModelScope.launch {
-            val activeMeetings = meetingRepository.getActiveRecordings()
+    suspend fun createNewMeetingIfPossible(title: String = "New Meeting"): Long? {
+        val activeMeetings = meetingRepository.getActiveRecordings()
 
-            if (activeMeetings.isEmpty()) {
-                meetingRepository.createMeeting(title)
-            }
+        return if (activeMeetings.isEmpty()) {
+            meetingRepository.createMeeting(title)
+        } else {
+            null
         }
     }
 
