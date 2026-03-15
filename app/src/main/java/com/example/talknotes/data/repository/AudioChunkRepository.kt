@@ -2,6 +2,7 @@ package com.example.talknotes.data.repository
 
 import com.example.talknotes.data.local.dao.AudioChunkDao
 import com.example.talknotes.data.local.entity.AudioChunk
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,5 +25,9 @@ class AudioChunkRepository @Inject constructor(
 
     suspend fun updateChunk(chunk: AudioChunk) {
         audioChunkDao.updateChunk(chunk)
+    }
+
+    fun getChunkCountForMeeting(meetingId: Long): Flow<Int> {
+        return audioChunkDao.getChunkCountForMeeting(meetingId)
     }
 }

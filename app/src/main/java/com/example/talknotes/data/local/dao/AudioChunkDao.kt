@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.example.talknotes.data.local.entity.AudioChunk
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AudioChunkDao {
@@ -20,4 +21,7 @@ interface AudioChunkDao {
 
     @Update
     suspend fun updateChunk(chunk: AudioChunk)
+
+    @Query("SELECT COUNT(*) FROM audio_chunks WHERE meetingId = :meetingId")
+    fun getChunkCountForMeeting(meetingId: Long): Flow<Int>
 }

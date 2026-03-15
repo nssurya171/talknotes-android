@@ -145,8 +145,10 @@ fun DashboardScreen(
                 ) {
                     items(meetings) { meeting ->
                         MeetingItem(
+                            meetingId = meeting.id,
                             title = meeting.title,
-                            status = meeting.status
+                            status = meeting.status,
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -157,9 +159,13 @@ fun DashboardScreen(
 
 @Composable
 fun MeetingItem(
+    meetingId: Long,
     title: String,
-    status: String
+    status: String,
+    viewModel: DashboardViewModel
 ) {
+    val chunkCount by viewModel.getChunkCountForMeeting(meetingId).collectAsState(initial = 0)
+
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -175,6 +181,13 @@ fun MeetingItem(
 
             Text(
                 text = "Status: $status",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Chunks: $chunkCount",
                 style = MaterialTheme.typography.bodyMedium
             )
         }

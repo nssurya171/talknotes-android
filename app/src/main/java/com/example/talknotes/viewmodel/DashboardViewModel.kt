@@ -3,9 +3,11 @@ package com.example.talknotes.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.talknotes.data.local.entity.Meeting
+import com.example.talknotes.data.repository.AudioChunkRepository
 import com.example.talknotes.data.repository.MeetingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -14,7 +16,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val meetingRepository: MeetingRepository
+    private val meetingRepository: MeetingRepository,
+    private val audioChunkRepository: AudioChunkRepository
 ) : ViewModel() {
 
     val meetings: StateFlow<List<Meeting>> = meetingRepository
@@ -61,5 +64,9 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             meetingRepository.stopAllActiveRecordings()
         }
+    }
+
+    fun getChunkCountForMeeting(meetingId: Long): Flow<Int> {
+        return audioChunkRepository.getChunkCountForMeeting(meetingId)
     }
 }
