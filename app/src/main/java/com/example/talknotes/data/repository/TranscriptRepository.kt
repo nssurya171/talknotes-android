@@ -18,4 +18,8 @@ class TranscriptRepository @Inject constructor(
     fun getTranscript(meetingId: Long): Flow<List<Transcript>> {
         return transcriptDao.getTranscriptForMeeting(meetingId)
     }
+
+    suspend fun clearTranscriptForMeeting(meetingId: Long) {
+        transcriptDao.deleteTranscriptsForMeeting(meetingId)
+    }
 }

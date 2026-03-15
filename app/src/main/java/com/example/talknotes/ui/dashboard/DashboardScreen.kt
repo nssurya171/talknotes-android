@@ -165,6 +165,7 @@ fun MeetingItem(
     viewModel: DashboardViewModel
 ) {
     val chunkCount by viewModel.getChunkCountForMeeting(meetingId).collectAsState(initial = 0)
+    val transcriptList by viewModel.getTranscriptForMeeting(meetingId).collectAsState(initial = emptyList())
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -190,6 +191,26 @@ fun MeetingItem(
                 text = "Chunks: $chunkCount",
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Transcript lines: ${transcriptList.size}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            if (status == "STOPPED" && chunkCount > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.generateMockTranscript(meetingId)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Generate Mock Transcript")
+                }
+            }
         }
     }
 }
