@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,23 +25,30 @@ class DashboardViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    val isRecording: StateFlow<Boolean> = meetingRepository
+        .getMeetings()
+        .map { meetings ->
+            meetings.any { it.status == "RECORDING" }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false
+        )
+
     fun startNewMeeting(title: String = "New Meeting") {
         viewModelScope.launch {
-            meetingRepository.createMeeting(title)
+            val activeMeetings = meetingRepository.getActiveRecordings()
+
+            if (activeMeetings.isEmpty()) {
+                meetingRepository.createMeeting(title)
+            }
         }
     }
 
-    fun stopLatestRecording() {
+    fun stopAllRecordings() {
         viewModelScope.launch {
-            val latestMeeting = meetings.value.firstOrNull() ?: return@launch
-
-            if (latestMeeting.status == "RECORDING") {
-                val updatedMeeting = latestMeeting.copy(
-                    endTime = System.currentTimeMillis(),
-                    status = "STOPPED"
-                )
-                meetingRepository.updateMeeting(updatedMeeting)
-            }
+            meetingRepository.stopAllActiveRecordings()
         }
     }
 }

@@ -32,10 +32,8 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val meetings by viewModel.meetings.collectAsState()
+    val isRecording by viewModel.isRecording.collectAsState()
     val context = LocalContext.current
-
-    val latestMeeting = meetings.firstOrNull()
-    val isRecording = latestMeeting?.status == "RECORDING"
 
     Scaffold(
         floatingActionButton = {
@@ -72,7 +70,7 @@ fun DashboardScreen(
             if (isRecording) {
                 Button(
                     onClick = {
-                        viewModel.stopLatestRecording()
+                        viewModel.stopAllRecordings()
 
                         val intent = Intent(context, RecordingService::class.java).apply {
                             action = RecordingService.ACTION_STOP
@@ -111,8 +109,7 @@ fun MeetingItem(
     status: String
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

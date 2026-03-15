@@ -21,4 +21,7 @@ interface MeetingDao {
 
     @Query("SELECT * FROM meetings WHERE id = :meetingId")
     suspend fun getMeetingById(meetingId: Long): Meeting?
+
+    @Query("SELECT * FROM meetings WHERE status = 'RECORDING' ORDER BY startTime DESC")
+    suspend fun getActiveRecordings(): List<Meeting>
 }

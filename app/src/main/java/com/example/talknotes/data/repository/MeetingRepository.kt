@@ -12,13 +12,11 @@ class MeetingRepository @Inject constructor(
 ) {
 
     suspend fun createMeeting(title: String): Long {
-
         val meeting = Meeting(
             title = title,
             startTime = System.currentTimeMillis(),
             status = "RECORDING"
         )
-
         return meetingDao.insertMeeting(meeting)
     }
 
@@ -32,5 +30,22 @@ class MeetingRepository @Inject constructor(
 
     suspend fun getMeetingById(meetingId: Long): Meeting? {
         return meetingDao.getMeetingById(meetingId)
+    }
+
+    suspend fun getActiveRecordings(): List<Meeting> {
+        return meetingDao.getActiveRecordings()
+    }
+
+    suspend fun stopAllActiveRecordings() {
+        val activeMeetings = meetingDao.getActiveRecordings()
+
+        activeMeetings.forEach { meeting ->
+            meetingDao.updateMeeting(
+                meeting.copy(
+                    endTime = System.currentTimeMillis(),
+                    status = "STOPPED"
+                )
+            )
+        }
     }
 }
