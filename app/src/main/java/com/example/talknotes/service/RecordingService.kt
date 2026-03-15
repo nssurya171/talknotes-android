@@ -24,10 +24,19 @@ class RecordingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification("Recording..."))
+        when (intent?.action) {
+            ACTION_START -> {
+                startForeground(NOTIFICATION_ID, buildNotification("Recording..."))
+                if (mediaRecorder == null) {
+                    startRecording()
+                }
+            }
 
-        if (mediaRecorder == null) {
-            startRecording()
+            ACTION_STOP -> {
+                stopRecording()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
 
         return START_STICKY
@@ -43,6 +52,7 @@ class RecordingService : Service() {
     private fun startRecording() {
         val baseDir = getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: filesDir
         val audioDir = File(baseDir, "recordings")
+
         if (!audioDir.exists()) {
             audioDir.mkdirs()
         }
@@ -107,5 +117,8 @@ class RecordingService : Service() {
     companion object {
         const val CHANNEL_ID = "recording_channel"
         const val NOTIFICATION_ID = 1001
+
+        const val ACTION_START = "ACTION_START_RECORDING"
+        const val ACTION_STOP = "ACTION_STOP_RECORDING"
     }
 }

@@ -29,4 +29,18 @@ class DashboardViewModel @Inject constructor(
             meetingRepository.createMeeting(title)
         }
     }
+
+    fun stopLatestRecording() {
+        viewModelScope.launch {
+            val latestMeeting = meetings.value.firstOrNull() ?: return@launch
+
+            if (latestMeeting.status == "RECORDING") {
+                val updatedMeeting = latestMeeting.copy(
+                    endTime = System.currentTimeMillis(),
+                    status = "STOPPED"
+                )
+                meetingRepository.updateMeeting(updatedMeeting)
+            }
+        }
+    }
 }

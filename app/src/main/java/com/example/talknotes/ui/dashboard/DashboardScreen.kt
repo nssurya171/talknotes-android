@@ -1,6 +1,7 @@
 package com.example.talknotes.ui.dashboard
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -32,17 +34,24 @@ fun DashboardScreen(
     val meetings by viewModel.meetings.collectAsState()
     val context = LocalContext.current
 
+    val latestMeeting = meetings.firstOrNull()
+    val isRecording = latestMeeting?.status == "RECORDING"
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    viewModel.startNewMeeting()
+            if (!isRecording) {
+                FloatingActionButton(
+                    onClick = {
+                        viewModel.startNewMeeting()
 
-                    val intent = Intent(context, RecordingService::class.java)
-                    ContextCompat.startForegroundService(context, intent)
+                        val intent = Intent(context, RecordingService::class.java).apply {
+                            action = RecordingService.ACTION_START
+                        }
+                        ContextCompat.startForegroundService(context, intent)
+                    }
+                ) {
+                    Text("+")
                 }
-            ) {
-                Text("+")
             }
         }
     ) { padding ->
@@ -60,10 +69,30 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (isRecording) {
+                Button(
+                    onClick = {
+                        viewModel.stopLatestRecording()
+
+                        val intent = Intent(context, RecordingService::class.java).apply {
+                            action = RecordingService.ACTION_STOP
+                        }
+                        context.startService(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Stop Recording")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             if (meetings.isEmpty()) {
                 Text("No meetings recorded yet")
             } else {
-                LazyColumn {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(meetings) { meeting ->
                         MeetingItem(
                             title = meeting.title,
@@ -84,7 +113,6 @@ fun MeetingItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
