@@ -1,5 +1,6 @@
 package com.example.talknotes.ui.dashboard
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.talknotes.service.RecordingService
 import com.example.talknotes.viewmodel.DashboardViewModel
 
 @Composable
@@ -26,12 +30,14 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val meetings by viewModel.meetings.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // start recording action (next step)
+                    val intent = Intent(context, RecordingService::class.java)
+                    ContextCompat.startForegroundService(context, intent)
                 }
             ) {
                 Text("+")
