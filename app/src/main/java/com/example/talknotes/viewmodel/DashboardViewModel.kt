@@ -104,14 +104,7 @@ class DashboardViewModel @Inject constructor(
 
     fun generateMockSummary(meetingId: Long) {
         viewModelScope.launch {
-            val transcriptList = transcriptRepository
-                .getTranscript(meetingId)
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.Eagerly,
-                    initialValue = emptyList()
-                )
-                .value
+            val transcriptList = transcriptRepository.getTranscriptListForMeeting(meetingId)
 
             if (transcriptList.isEmpty()) return@launch
 

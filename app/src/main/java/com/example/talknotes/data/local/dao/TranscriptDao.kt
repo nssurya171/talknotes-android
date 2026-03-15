@@ -15,6 +15,9 @@ interface TranscriptDao {
     @Query("SELECT * FROM transcripts WHERE meetingId = :meetingId ORDER BY chunkIndex ASC")
     fun getTranscriptForMeeting(meetingId: Long): Flow<List<Transcript>>
 
+    @Query("SELECT * FROM transcripts WHERE meetingId = :meetingId ORDER BY chunkIndex ASC")
+    suspend fun getTranscriptListForMeeting(meetingId: Long): List<Transcript>
+
     @Query("DELETE FROM transcripts WHERE meetingId = :meetingId")
     suspend fun deleteTranscriptsForMeeting(meetingId: Long)
 }
