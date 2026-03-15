@@ -12,13 +12,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            TalkNotesApp()
+            TalkNotesRoot()
         }
     }
 }
 
 @Composable
-fun TalkNotesApp() {
+fun TalkNotesRoot() {
     MaterialTheme {
         Surface {
             DashboardScreen()
