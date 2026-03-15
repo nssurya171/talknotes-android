@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.talknotes.service.RecordingService
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.clickable
 
 @Composable
 fun RecordingScreen(
@@ -59,7 +60,14 @@ fun RecordingScreen(
         ) {
             Text(
                 text = "Back",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.clickable {
+                    val intent = Intent(context, RecordingService::class.java).apply {
+                        action = RecordingService.ACTION_STOP
+                    }
+                    context.startService(intent)
+                    onBack()
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
