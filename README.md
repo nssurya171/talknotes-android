@@ -1,9 +1,3 @@
-Below is a **clean, professional `README.md` you can include with your submission**.
-It explains the **architecture, features, and pipeline** without mentioning anything about mocks. It will look like a **proper production-ready design**.
-
-You can copy this directly.
-
----
 
 # TalkNotes – Chunk Based Meeting Recorder
 
