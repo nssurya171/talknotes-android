@@ -2,6 +2,7 @@ package com.example.talknotes
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,8 +11,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.talknotes.ui.dashboard.DashboardScreen
 import com.example.talknotes.ui.recording.RecordingScreen
+import com.example.talknotes.viewmodel.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -20,7 +23,15 @@ class MainActivity : ComponentActivity() {
     private val requestAudioPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // optional: later show toast/snackbar if denied
+        if (isGranted) {
+            checkNotificationPermission()
+        }
+    }
+
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        // optional: later show message if denied
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +52,21 @@ class MainActivity : ComponentActivity() {
 
         if (permissionStatus != PackageManager.PERMISSION_GRANTED) {
             requestAudioPermission.launch(Manifest.permission.RECORD_AUDIO)
+        } else {
+            checkNotificationPermission()
+        }
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val notificationPermissionStatus = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+
+            if (notificationPermissionStatus != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 }
@@ -49,6 +75,9 @@ class MainActivity : ComponentActivity() {
 fun TalkNotesRoot() {
     var currentScreen by remember { mutableStateOf("dashboard") }
     var recordingStartTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    val dashboardViewModel: DashboardViewModel = hiltViewModel()
+    val activeMeetingStatus by dashboardViewModel.activeMeetingStatus.collectAsState()
 
     MaterialTheme {
         Surface {
@@ -65,6 +94,7 @@ fun TalkNotesRoot() {
                 "recording" -> {
                     RecordingScreen(
                         startTimeMillis = recordingStartTime,
+                        meetingStatus = activeMeetingStatus,
                         onBack = {
                             currentScreen = "dashboard"
                         },

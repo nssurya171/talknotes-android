@@ -347,7 +347,7 @@ class RecordingService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Recording Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             )
 
             val manager = getSystemService(NotificationManager::class.java)

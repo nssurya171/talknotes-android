@@ -33,21 +33,32 @@ import androidx.compose.foundation.clickable
 @Composable
 fun RecordingScreen(
     startTimeMillis: Long,
+    meetingStatus: String?,
     onBack: () -> Unit,
     onStopCompleted: () -> Unit
 ) {
     val context = LocalContext.current
-    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var elapsedMillis by remember { mutableLongStateOf(0L) }
+    var lastTickTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(meetingStatus) {
         while (true) {
-            currentTimeMillis = System.currentTimeMillis()
+            val now = System.currentTimeMillis()
+
+            if (meetingStatus == "RECORDING") {
+                elapsedMillis += (now - lastTickTime)
+            }
+
+            lastTickTime = now
             delay(1000)
         }
     }
-
-    val elapsedMillis = currentTimeMillis - startTimeMillis
     val timerText = formatElapsedTime(elapsedMillis)
+    val statusText = when (meetingStatus) {
+        "RECORDING" -> "Recording..."
+        "PAUSED_AUDIO_FOCUS" -> "Paused - Audio focus lost"
+        else -> "Preparing..."
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize()
@@ -82,7 +93,15 @@ fun RecordingScreen(
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodyLarge
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
+
 
             Text(
                 text = "Listening and taking notes...",

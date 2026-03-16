@@ -178,6 +178,12 @@ fun MeetingItem(
     val chunkCount by viewModel.getChunkCountForMeeting(meetingId).collectAsState(initial = 0)
     val transcriptList by viewModel.getTranscriptForMeeting(meetingId).collectAsState(initial = emptyList())
     val summary by viewModel.getSummaryForMeeting(meetingId).collectAsState(initial = null)
+    val displayStatus = when (status) {
+        "RECORDING" -> "Recording..."
+        "STOPPED" -> "Stopped"
+        "PAUSED_AUDIO_FOCUS" -> "Paused - Audio focus lost"
+        else -> status
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -193,7 +199,7 @@ fun MeetingItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Status: $status",
+                text = "Status: $displayStatus",
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -218,7 +224,7 @@ fun MeetingItem(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            if (status == "STOPPED" && chunkCount > 0) {
+            if (status == "STOPPED" || status == "PAUSED_AUDIO_FOCUS" && chunkCount > 0) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
@@ -231,7 +237,7 @@ fun MeetingItem(
                 }
             }
 
-            if (status == "STOPPED" && transcriptList.isNotEmpty()) {
+            if (status == "STOPPED" || status == "PAUSED_AUDIO_FOCUS" && transcriptList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
