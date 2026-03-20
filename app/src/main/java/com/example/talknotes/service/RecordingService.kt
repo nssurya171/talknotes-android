@@ -271,7 +271,7 @@ class RecordingService : Service() {
         }
 
         if (!savedPath.isNullOrBlank()) {
-            audioChunkRepository.saveChunk(
+            val chunkId = audioChunkRepository.saveChunk(
                 AudioChunk(
                     meetingId = currentMeetingId,
                     chunkIndex = currentChunkIndex,
@@ -279,7 +279,29 @@ class RecordingService : Service() {
                     uploaded = false
                 )
             )
+
+            meetingRepository.updateLastChunkIndex(
+                meetingId = currentMeetingId,
+                lastChunkIndex = currentChunkIndex
+            )
+
+            android.util.Log.d(
+                "TalkNotes",
+                "Saved chunk: meetingId=$currentMeetingId chunkIndex=$currentChunkIndex chunkId=$chunkId path=$savedPath"
+            )
+
+            audioChunkRepository.enqueueTranscription(
+                context = applicationContext,
+                chunkId = chunkId,
+                meetingId = currentMeetingId
+            )
+
+            android.util.Log.d(
+                "TalkNotes",
+                "Enqueued transcription for chunkId=$chunkId meetingId=$currentMeetingId"
+            )
         }
+
         outputFilePath = null
     }
 
@@ -302,13 +324,34 @@ class RecordingService : Service() {
             val file = File(savedPath)
 
             if (file.exists() && file.length() > 0L) {
-                audioChunkRepository.saveChunk(
+                val chunkId = audioChunkRepository.saveChunk(
                     AudioChunk(
                         meetingId = currentMeetingId,
                         chunkIndex = currentChunkIndex,
                         filePath = savedPath,
                         uploaded = false
                     )
+                )
+
+                meetingRepository.updateLastChunkIndex(
+                    meetingId = currentMeetingId,
+                    lastChunkIndex = currentChunkIndex
+                )
+
+                android.util.Log.d(
+                    "TalkNotes",
+                    "Saved partial chunk: meetingId=$currentMeetingId chunkIndex=$currentChunkIndex chunkId=$chunkId path=$savedPath"
+                )
+
+                audioChunkRepository.enqueueTranscription(
+                    context = applicationContext,
+                    chunkId = chunkId,
+                    meetingId = currentMeetingId
+                )
+
+                android.util.Log.d(
+                    "TalkNotes",
+                    "Enqueued transcription for partial chunkId=$chunkId meetingId=$currentMeetingId"
                 )
             }
         }

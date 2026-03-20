@@ -175,6 +175,7 @@ fun MeetingItem(
     status: String,
     viewModel: DashboardViewModel
 ) {
+    val context = LocalContext.current
     val chunkCount by viewModel.getChunkCountForMeeting(meetingId).collectAsState(initial = 0)
     val transcriptList by viewModel.getTranscriptForMeeting(meetingId).collectAsState(initial = emptyList())
     val summary by viewModel.getSummaryForMeeting(meetingId).collectAsState(initial = null)
@@ -184,6 +185,17 @@ fun MeetingItem(
         "PAUSED_AUDIO_FOCUS" -> "Paused - Audio focus lost"
         else -> status
     }
+    val summaryStatusText = when (summary?.status) {
+        "PROCESSING" -> "Summary: Generating..."
+        "DONE" -> "Summary: Available"
+        "FAILED" -> "Summary: Failed"
+        else -> "Summary: Not generated"
+    }
+    val transcriptPreview = transcriptList
+        .take(2)
+        .joinToString(" ") { it.text }
+        .ifBlank { "No transcript generated yet" }
+    val summaryData = summary
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -216,66 +228,73 @@ fun MeetingItem(
                 text = "Transcript lines: ${transcriptList.size}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Transcript Preview",
+                style = MaterialTheme.typography.titleSmall
+            )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = if (summary != null) "Summary: Available" else "Summary: Not generated",
+                text = transcriptPreview,
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            if (status == "STOPPED" || status == "PAUSED_AUDIO_FOCUS" && chunkCount > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = summaryStatusText,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+
+            if ((status == "STOPPED" || status == "PAUSED_AUDIO_FOCUS") && transcriptList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
                     onClick = {
-                        viewModel.generateMockTranscript(meetingId)
+                        viewModel.generateRealSummary(context, meetingId)
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Generate Mock Transcript")
+                    Text("Generate Summary")
                 }
             }
 
-            if (status == "STOPPED" || status == "PAUSED_AUDIO_FOCUS" && transcriptList.isNotEmpty()) {
+
+            if (summaryData != null && summaryData.status == "DONE") {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = {
-                        viewModel.generateMockSummary(meetingId)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Generate Mock Summary")
-                }
+                Text("Title", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(summaryData.title, style = MaterialTheme.typography.bodyMedium)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Summary", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(summaryData.summary, style = MaterialTheme.typography.bodyMedium)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Action Items", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(summaryData.actionItems, style = MaterialTheme.typography.bodyMedium)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("Key Points", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(summaryData.keyPoints, style = MaterialTheme.typography.bodyMedium)
             }
 
-            if (summary != null) {
-                Spacer(modifier = Modifier.height(12.dp))
 
+            if (summaryData?.status == "FAILED") {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Title: ${summary?.title.orEmpty()}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Summary: ${summary?.summary.orEmpty()}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Action Items: ${summary?.actionItems.orEmpty()}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Key Points: ${summary?.keyPoints.orEmpty()}",
+                    text = summaryData.errorMessage ?: "Summary generation failed",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

@@ -11,7 +11,11 @@ data class Transcript(
 
     val meetingId: Long,
 
+    val chunkId: Long,
+
     val chunkIndex: Int,
 
-    val text: String
+    val text: String,
+
+    val createdAt: Long = System.currentTimeMillis()
 )

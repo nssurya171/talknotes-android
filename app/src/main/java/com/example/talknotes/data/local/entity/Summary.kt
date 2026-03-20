@@ -11,12 +11,17 @@ data class Summary(
 
     val meetingId: Long,
 
-    val title: String,
+    val title: String = "",
 
-    val summary: String,
+    val summary: String = "",
 
-    val actionItems: String,
+    val actionItems: String = "",
 
-    val keyPoints: String
+    val keyPoints: String = "",
+
+    val status: String = "PENDING", // PENDING, PROCESSING, DONE, FAILED
+
+    val errorMessage: String? = null,
+
+    val updatedAt: Long = System.currentTimeMillis()
 )
-

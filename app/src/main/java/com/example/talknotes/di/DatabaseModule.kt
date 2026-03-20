@@ -23,12 +23,13 @@ object DatabaseModule {
     fun provideDatabase(
         @ApplicationContext context: Context
     ): AppDatabase {
-
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "talknotes_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

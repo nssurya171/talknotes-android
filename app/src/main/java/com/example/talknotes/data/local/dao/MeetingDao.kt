@@ -22,9 +22,18 @@ interface MeetingDao {
     @Query("SELECT * FROM meetings WHERE id = :meetingId")
     suspend fun getMeetingById(meetingId: Long): Meeting?
 
-    @Query("SELECT * FROM meetings WHERE status = 'RECORDING' ORDER BY startTime DESC")
+    @Query("SELECT * FROM meetings WHERE status IN ('RECORDING', 'PAUSED') ORDER BY startTime DESC")
     suspend fun getActiveRecordings(): List<Meeting>
 
     @Query("UPDATE meetings SET status = :status WHERE id = :meetingId")
     suspend fun updateMeetingStatus(meetingId: Long, status: String)
+
+    @Query("UPDATE meetings SET transcriptionStatus = :status WHERE id = :meetingId")
+    suspend fun updateMeetingTranscriptionStatus(meetingId: Long, status: String)
+
+    @Query("UPDATE meetings SET summaryStatus = :status WHERE id = :meetingId")
+    suspend fun updateMeetingSummaryStatus(meetingId: Long, status: String)
+
+    @Query("UPDATE meetings SET lastChunkIndex = :lastChunkIndex WHERE id = :meetingId")
+    suspend fun updateLastChunkIndex(meetingId: Long, lastChunkIndex: Int)
 }

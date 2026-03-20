@@ -15,5 +15,17 @@ data class AudioChunk(
 
     val filePath: String,
 
-    val uploaded: Boolean = false
+    val uploaded: Boolean = false,
+
+    val transcriptionStatus: String = "PENDING", // PENDING, PROCESSING, DONE, FAILED
+
+    val retryCount: Int = 0,
+
+    val errorMessage: String? = null,
+
+    val startTimeMs: Long? = null,
+
+    val endTimeMs: Long? = null,
+
+    val createdAt: Long = System.currentTimeMillis()
 )

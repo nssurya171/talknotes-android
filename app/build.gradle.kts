@@ -1,16 +1,26 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+val openAiApiKey = localProperties.getProperty("OPENAI_API_KEY", "")
+val openRouterApiKey = localProperties.getProperty("OPENROUTER_API_KEY", "")
+
 android {
     namespace = "com.example.talknotes"
     compileSdk = 35
-
 
     defaultConfig {
         applicationId = "com.example.talknotes"
@@ -21,7 +31,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-
+        buildConfigField("String", "OPENAI_API_KEY", "\"$openAiApiKey\"")
+        buildConfigField("String", "OPENROUTER_API_KEY", "\"$openRouterApiKey\"")
     }
 
     buildTypes {
@@ -33,17 +44,20 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
-
 }
 
 kapt {
@@ -60,6 +74,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -68,25 +83,25 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
 
-    // Retrofit
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
 
-    // Coroutines
+    implementation(libs.okhttpCore)
+    implementation(libs.okhttpLogging)
+
     implementation(libs.coroutines.android)
 
-    // WorkManager
-    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidxWorkRuntime)
 
-    // Hilt
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+
+    implementation(libs.androidxHiltWork)
+    kapt(libs.androidxHiltCompiler)
 }

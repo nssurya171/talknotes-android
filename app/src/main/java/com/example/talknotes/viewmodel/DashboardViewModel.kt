@@ -105,11 +105,22 @@ class DashboardViewModel @Inject constructor(
                 transcriptRepository.saveTranscript(
                     Transcript(
                         meetingId = meetingId,
+                        chunkId = chunk.id,
                         chunkIndex = chunk.chunkIndex,
                         text = "Mock transcript generated for chunk ${chunk.chunkIndex}"
                     )
                 )
             }
+        }
+    }
+
+    fun generateRealSummary(context: android.content.Context, meetingId: Long) {
+        viewModelScope.launch {
+            summaryRepository.enqueueSummary(
+                context = context.applicationContext,
+                meetingId = meetingId,
+                forceRegenerate = true
+            )
         }
     }
 

@@ -15,7 +15,10 @@ class MeetingRepository @Inject constructor(
         val meeting = Meeting(
             title = title,
             startTime = System.currentTimeMillis(),
-            status = "RECORDING"
+            status = "RECORDING",
+            transcriptionStatus = "PENDING",
+            summaryStatus = "PENDING",
+            lastChunkIndex = -1
         )
         return meetingDao.insertMeeting(meeting)
     }
@@ -51,5 +54,17 @@ class MeetingRepository @Inject constructor(
 
     suspend fun updateMeetingStatus(meetingId: Long, status: String) {
         meetingDao.updateMeetingStatus(meetingId, status)
+    }
+
+    suspend fun updateMeetingTranscriptionStatus(meetingId: Long, status: String) {
+        meetingDao.updateMeetingTranscriptionStatus(meetingId, status)
+    }
+
+    suspend fun updateMeetingSummaryStatus(meetingId: Long, status: String) {
+        meetingDao.updateMeetingSummaryStatus(meetingId, status)
+    }
+
+    suspend fun updateLastChunkIndex(meetingId: Long, lastChunkIndex: Int) {
+        meetingDao.updateLastChunkIndex(meetingId, lastChunkIndex)
     }
 }

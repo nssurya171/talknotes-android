@@ -15,5 +15,11 @@ data class Meeting(
 
     val endTime: Long? = null,
 
-    val status: String
+    val status: String, // RECORDING, PAUSED, STOPPED
+
+    val transcriptionStatus: String = "PENDING", // PENDING, PROCESSING, DONE, FAILED
+
+    val summaryStatus: String = "PENDING", // PENDING, PROCESSING, DONE, FAILED
+
+    val lastChunkIndex: Int = -1
 )

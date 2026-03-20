@@ -18,7 +18,7 @@ import com.example.talknotes.data.local.entity.Transcript
         Transcript::class,
         Summary::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
