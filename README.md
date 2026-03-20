@@ -111,15 +111,15 @@ Room DB + API Layer
 ##  Assignment Requirement Coverage
 
 | Requirement | Status |
-|------------|-|
-| Foreground recording service |
-| 30-sec chunk recording |
-| Background recording |
-| Audio focus interruption handling |
-| Transcript generation (real API) |
-| Summary generation (real API) |
-| Room as source of truth |
-| MVVM architecture  |
+|------------|--------|
+| Foreground recording service | ✅ |
+| 30-sec chunk recording | ✅ |
+| Background recording | ✅ |
+| Audio focus interruption handling | ✅ |
+| Transcript generation (real API) | ✅ |
+| Summary generation (real API) | ✅ |
+| Room as source of truth | ✅ |
+| MVVM architecture | ✅ |
 
 ---
 
